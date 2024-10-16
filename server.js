@@ -25,7 +25,11 @@ app.use(cors({
 app.use(session({
     resave: false,
     saveUninitialized: true,
-    secret: "SECRET",
+    secret: "SECRET", // Nên sử dụng biến môi trường cho secret
+    cookie: {
+        secure: false, // Chỉ đặt true nếu bạn đang sử dụng HTTPS
+        maxAge: 24 * 60 * 60 * 1000 // 1 ngày
+    }
 }));
 
 // Thiết lập thư mục tĩnh
@@ -45,7 +49,6 @@ passport.use(new GoogleStrategy({
     clientSecret: GOOGLE_CLIENT_SECRET,
     callbackURL: "https://screenshare.herokuapp.com/auth/google/callback"
 }, function(accessToken, refreshToken, profile, done) {
-    // Xử lý người dùng sau khi đăng nhập thành công
     userProfile = profile; // Lưu thông tin người dùng
     return done(null, profile);
 }));
@@ -70,7 +73,7 @@ app.get("/auth/google",
 app.get("/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/error" }),
     (req, res) => {
-        console.log("User logged in:", req.user); // In thông tin người dùng đã đăng nhập
+        console.log("User logged in:", req.user);
         userProfile = req.user; // Lưu thông tin người dùng vào biến toàn cục
         res.redirect("/home");
     }
