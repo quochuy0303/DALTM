@@ -4,7 +4,6 @@ const path = require("path");
 const session = require("express-session");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const cors = require("cors");
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -15,21 +14,11 @@ const app = express();
 // Thiết lập EJS làm view engine
 app.set("view engine", "ejs");
 
-// Thiết lập CORS
-app.use(cors({
-    origin: "https://screenshare.herokuapp.com", // Địa chỉ của ứng dụng Heroku
-    credentials: true
-}));
-
 // Thiết lập session
 app.use(session({
     resave: false,
     saveUninitialized: true,
-    secret: "SECRET", // Nên sử dụng biến môi trường cho secret
-    cookie: {
-        secure: false, // Chỉ đặt true nếu bạn đang sử dụng HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 1 ngày
-    }
+    secret: "SECRET",
 }));
 
 // Thiết lập thư mục tĩnh
@@ -44,14 +33,19 @@ passport.serializeUser((user, cb) => cb(null, user));
 passport.deserializeUser((obj, cb) => cb(null, obj));
 
 // Cấu hình Google Strategy
-passport.use(new GoogleStrategy({
-    clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://screenshare.herokuapp.com/auth/google/callback"
-}, function(accessToken, refreshToken, profile, done) {
-    userProfile = profile; // Lưu thông tin người dùng
-    return done(null, profile);
-}));
+passport.use(
+    new GoogleStrategy(
+        {
+            clientID: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
+            callbackURL: "https://screenshare.herokuapp.com/auth/google/callback", // Thay bằng ngrok URL nếu cần
+        },
+        function (accessToken, refreshToken, profile, done) {
+            userProfile = profile;
+            return done(null, userProfile);
+        }
+    )
+);
 
 // Định nghĩa các route
 app.get("/", (req, res) => res.render("index"));
@@ -72,11 +66,7 @@ app.get("/auth/google",
 
 app.get("/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/error" }),
-    (req, res) => {
-        console.log("User logged in:", req.user);
-        userProfile = req.user; // Lưu thông tin người dùng vào biến toàn cục
-        res.redirect("/home");
-    }
+    (req, res) => res.redirect("/home")
 );
 
 // Khởi động server
