@@ -4,6 +4,7 @@ const path = require("path");
 const session = require("express-session");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const cors = require("cors");
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -13,6 +14,12 @@ const app = express();
 
 // Thiết lập EJS làm view engine
 app.set("view engine", "ejs");
+
+// Thiết lập CORS
+app.use(cors({
+    origin: "https://screenshare.herokuapp.com", // Địa chỉ của ứng dụng Heroku
+    credentials: true
+}));
 
 // Thiết lập session
 app.use(session({
@@ -33,19 +40,15 @@ passport.serializeUser((user, cb) => cb(null, user));
 passport.deserializeUser((obj, cb) => cb(null, obj));
 
 // Cấu hình Google Strategy
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: GOOGLE_CLIENT_ID,
-            clientSecret: GOOGLE_CLIENT_SECRET,
-            callbackURL: "http://localhost:4000/auth/google/callback", // Thay bằng ngrok URL nếu cần
-        },
-        function (accessToken, refreshToken, profile, done) {
-            userProfile = profile;
-            return done(null, userProfile);
-        }
-    )
-);
+passport.use(new GoogleStrategy({
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: "https://screenshare.herokuapp.com/auth/google/callback"
+}, function(accessToken, refreshToken, profile, done) {
+    // Xử lý người dùng sau khi đăng nhập thành công
+    userProfile = profile; // Lưu thông tin người dùng
+    return done(null, profile);
+}));
 
 // Định nghĩa các route
 app.get("/", (req, res) => res.render("index"));
@@ -66,7 +69,11 @@ app.get("/auth/google",
 
 app.get("/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/error" }),
-    (req, res) => res.redirect("/home")
+    (req, res) => {
+        console.log("User logged in:", req.user); // In thông tin người dùng đã đăng nhập
+        userProfile = req.user; // Lưu thông tin người dùng vào biến toàn cục
+        res.redirect("/home");
+    }
 );
 
 // Khởi động server
