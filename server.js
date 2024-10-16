@@ -38,7 +38,7 @@ passport.use(
         {
             clientID: GOOGLE_CLIENT_ID,
             clientSecret: GOOGLE_CLIENT_SECRET,
-            callbackURL: "https://screenshare.herokuapp.com/auth/google/callback", // Thay bằng ngrok URL nếu cần
+            callbackURL: "https://screenshare.herokuapp.com/auth/google/callback"
         },
         function (accessToken, refreshToken, profile, done) {
             userProfile = profile;
